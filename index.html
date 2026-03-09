@@ -412,28 +412,7 @@
         "YOU TYPE LIKE A TERRIFIED CHILD. SURRENDER."
     ];
 
-    // Hardware Boot Sequence
-    powerButton.addEventListener('click', () => {
-        if (state !== 'OFF') return; 
-        
-        powerButton.classList.add('active');
-        
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        startStaticNoise();
-        createKeyNoiseBuffer();
-        
-        playHardwareSwitch();
-
-        screen.classList.add('powered-on');
-        state = 'DIFFICULTY_SELECT';
-
-        setTimeout(() => {
-            inputLine.style.display = 'flex';
-            printText("SYSTEM AKTIVIERT. TERMINAL POWERED ON.\nBITTE CHOOSE YOUR PROTOCOL:\n[1] NORMAL OP (STANDARD VERSCHLÜSSELUNG)\n[2] TRAINING OP (ASSISTED ENTSCHLÜSSELUNG)\nENTER EINGABE:");
-        }, 1500);
-    });
-
-    const playHardwareSwitch = () => {
+    function playHardwareSwitch() {
         if (!audioCtx) return;
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -446,16 +425,16 @@
         osc.connect(gain).connect(audioCtx.destination);
         osc.start(t);
         osc.stop(t + 0.15);
-    };
+    }
 
-    const createKeyNoiseBuffer = () => {
+    function createKeyNoiseBuffer() {
         const bufferSize = audioCtx.sampleRate * 0.05; 
         keyNoiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const output = keyNoiseBuffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1; 
-    };
+    }
 
-    const startStaticNoise = () => {
+    function startStaticNoise() {
         const bufferSize = audioCtx.sampleRate * 2; 
         const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -476,10 +455,9 @@
         filter.connect(staticGainNode);
         staticGainNode.connect(audioCtx.destination);
         noise.start();
-    };
+    }
 
-    // ACOUSTIC ENGINE (Bandpass Decay Implementation)
-    const playKeyDown = (isSystem = false) => {
+    function playKeyDown(isSystem = false) {
         if (!audioCtx || !keyNoiseBuffer) return;
         const t = audioCtx.currentTime;
 
@@ -499,19 +477,9 @@
         source.connect(filter).connect(gain).connect(audioCtx.destination);
         source.start(t);
         source.stop(t + 0.02);
-    };
+    }
 
-    inputField.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            if (inputField.value.trim() !== '') {
-                handleInput(inputField.value);
-            }
-        } else if (e.key !== 'Shift') {
-            playKeyDown(false);
-        }
-    });
-
-    const triggerExplosion = () => {
+    function triggerExplosion() {
         if (!audioCtx) return;
         
         const bufferSize = audioCtx.sampleRate * 2;
@@ -558,9 +526,9 @@
                 powerDown();
             }
         }, 80);
-    };
+    }
 
-    const powerDown = () => {
+    function powerDown() {
         clearTimeout(intrusionDefenseTimer);
         screen.classList.remove('intrusion-active');
 
@@ -572,9 +540,9 @@
         
         if (staticGainNode) staticGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
         setTimeout(rebootSystem, 4000);
-    };
+    }
 
-    const rebootSystem = () => {
+    function rebootSystem() {
         screen.classList.remove('power-loss');
         promptSpan.innerHTML = "SYS_REBOOT>";
         inputField.style.display = "block";
@@ -592,18 +560,16 @@
         printText("AUXILIARY POWER ONLINE.\nSTRUCTURAL INTEGRITY CRITICAL.\nLOCAL ROUTERS: DESTROYED.\nNETWORK TRACE: SEVERED.\n\nEVACUATION MANDATORY. TYPE 'REQ_EXTRACT'.", 40, () => {
             commandBar.style.display = 'flex';
         });
-    };
+    }
 
-    // --- CYBER WARFARE / DIGITAL INTRUSION ---
-
-    const generateHash = () => {
+    function generateHash() {
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let hash = "";
         for(let i=0; i<4; i++) hash += chars.charAt(Math.floor(Math.random() * chars.length));
         return hash;
-    };
+    }
 
-    const triggerIntrusion = (nodeTarget) => {
+    function triggerIntrusion(nodeTarget) {
         previousState = state;
         state = 'INTRUSION_DEFENSE';
         currentDefenseHash = generateHash();
@@ -626,9 +592,9 @@
                 executeWolfThreat();
             }
         }, 80);
-    };
+    }
 
-    const executeWolfThreat = () => {
+    function executeWolfThreat() {
         screen.classList.add('intrusion-active');
         promptSpan.innerText = "SSWOLF_DAEMON>";
         promptSpan.classList.add('trace-warning');
@@ -639,9 +605,9 @@
         printText(`*** SECURITY BREACH ***\n"${randomQuote}"\n\nDOWNLOAD BLOCKED. KERNEL PANIC IMMINENT.\nYOU HAVE 12 SECONDS TO OVERRIDE THE PACKET DROP.\nTYPE OVERRIDE HASH: ${hashString}`, 20, () => {
             intrusionDefenseTimer = setTimeout(failIntrusion, 12000);
         });
-    };
+    }
 
-    const failIntrusion = () => {
+    function failIntrusion() {
         screen.classList.remove('intrusion-active');
         promptSpan.classList.remove('trace-warning');
         promptSpan.innerText = `[TRACE: ${traceLimit}] HQ_LINK>`;
@@ -649,9 +615,9 @@
         state = 'CONNECTED';
         
         printText("DEFENSE FAILED. FIREWALL BREACHED. CONNECTION TO ROOT DIRECTORY SEVERED BY SSWOLF_DAEMON.\nYOU WERE EXPELLED FROM THE MAINFRAME BACK TO LOCAL SYSTEMS.\nYOU MUST RE-EXECUTE 'HACK_ROOT' TO PROCEED.");
-    };
+    }
 
-    const resolveIntrusion = (cmd) => {
+    function resolveIntrusion(cmd) {
         clearTimeout(intrusionDefenseTimer);
         screen.classList.remove('intrusion-active');
         promptSpan.classList.remove('trace-warning');
@@ -671,11 +637,9 @@
         } else {
             failIntrusion();
         }
-    };
+    }
 
-    // --- KINETIC SCRAMBLE (GESTAPO RDF RAID) ---
-
-    const triggerRDFIntercept = () => {
+    function triggerRDFIntercept() {
         previousState = state;
         state = 'RDF_SCRAMBLE';
         
@@ -686,15 +650,15 @@
         printText("*** GESTAPO RDF TRIANGULATION LOCKED ***\nEXCESSIVE RADIO AMPLIFICATION DETECTED. HEAVY INFANTRY DISPATCHED TO YOUR COORDINATES.\nYOU HAVE 15 SECONDS TO SCRAMBLE THE FREQUENCY OR BE OVERRUN.\nREQUIREMENT: DEPLOY JAM_FREQ COMMAND NOW.", 30, () => {
             rdfDefenseTimer = setTimeout(failRDFIntercept, 15000);
         });
-    };
+    }
 
-    const failRDFIntercept = () => {
+    function failRDFIntercept() {
         screen.classList.remove('intrusion-active');
         inputField.style.display = 'none';
         printText("\n*** DOOR BREACH DETECTED. GESTAPO PATROL HAS SECURED THE ROOM. ***\nMISSION FAILED. YOU HAVE BEEN CAPTURED.", 50);
-    };
+    }
 
-    const resolveRDFIntercept = (cmd) => {
+    function resolveRDFIntercept(cmd) {
         if (cmd === 'JAM_FREQ') {
             clearTimeout(rdfDefenseTimer);
             screen.classList.remove('intrusion-active');
@@ -709,11 +673,9 @@
         } else {
             printText("INVALID COMMAND. YOU MUST SCRAMBLE THE SIGNAL (JAM_FREQ) IMMEDIATELY.");
         }
-    };
+    }
 
-    // --- PRINT ENGINE ---
-
-    const printText = (text, speed = 30, callback = null) => {
+    function printText(text, speed = 30, callback = null) {
         isTyping = true;
         inputField.disabled = true;
         let i = 0;
@@ -749,69 +711,13 @@
                 if (callback) callback();
             }
         }, speed);
-    };
+    }
 
-    const handleInput = (rawCmd) => {
-        if (isTyping) return;
-        const cmd = rawCmd.trim().toUpperCase();
-        
-        if (state === 'INTRUSION_DEFENSE') {
-            outputDiv.innerHTML += `<span style="color:#FFF">> ${cmd}</span><br>`;
-            inputField.value = '';
-            resolveIntrusion(cmd);
-            return;
-        }
+    function getAction(cmd) {
+        return cmd.split(' ')[0];
+    }
 
-        if (state === 'RDF_SCRAMBLE') {
-            outputDiv.innerHTML += `<span style="color:#FFF">> ${cmd}</span><br>`;
-            inputField.value = '';
-            resolveRDFIntercept(cmd);
-            return;
-        }
-        
-        let colorClass = traceActive ? 'style="color:#d9534f"' : 'style="color:#6bc26b"';
-        outputDiv.innerHTML += `<span ${colorClass}>> ${cmd}</span><br>`;
-        inputField.value = '';
-
-        if (state === 'HACK_AUTH') {
-            processHackAuth(cmd);
-            return;
-        }
-
-        if (traceActive && action(cmd) !== 'CALL_STRIKE' && state !== 'CALC_EXTRACT') {
-            traceLimit--;
-            promptSpan.innerText = `[TRACE: ${traceLimit}] ${state === 'MAINFRAME' ? 'ROOT@BERLIN>' : 'HQ_LINK>'}`;
-            if (traceLimit <= 0) {
-                printText("NETWORK TRACE COMPLETE. ENEMY HAS LOCKED TERMINAL CONTROLS. GESTAPO PATROLS ARRIVING.\n\n*** MISSION FAILED ***", 60, () => {
-                    inputField.style.display = 'none';
-                    if(staticGainNode) staticGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 2);
-                });
-                return;
-            }
-        }
-
-        switch (state) {
-            case 'DIFFICULTY_SELECT':
-                processDifficulty(cmd);
-                break;
-            case 'BOOT':
-                processBoot(cmd);
-                break;
-            case 'CONNECTED':
-                processCommand(cmd);
-                break;
-            case 'MAINFRAME':
-                processMainframe(cmd);
-                break;
-            case 'CALC_EXTRACT':
-                processExtraction(cmd);
-                break;
-        }
-    };
-
-    const action = (cmd) => cmd.split(' ')[0];
-
-    const processDifficulty = (cmd) => {
+    function processDifficulty(cmd) {
         if (cmd === '1' || cmd === '2') {
             easyMode = (cmd === '2');
             state = 'BOOT';
@@ -820,9 +726,9 @@
         } else {
             printText("UNGÜLTIGE AUSWAHL. ENTER 1 OR 2.");
         }
-    };
+    }
 
-    const processBoot = (cmd) => {
+    function processBoot(cmd) {
         if (cmd === 'HELP') {
             let cipherString = easyMode ? '<span class="cipher-hint">WDUJHW</span>' : 'WDUJHW';
             printText(`SYSTEM FEHLER: ALLIED OVERRIDE REQUIRED. ZUGRIFF DENIED.\nAUTHORIZATION CIPHER IN USE: CAESAR SHIFT -3.\nABGEFANGEN KEY: ${cipherString}\nENTER DECRYPTED SCHLÜSSEL:`);
@@ -844,9 +750,9 @@
                 });
             }
         }
-    };
+    }
 
-    const processMainframe = (cmd) => {
+    function processMainframe(cmd) {
         const args = cmd.split(' ');
         const action = args[0];
         const target = args[1];
@@ -870,9 +776,9 @@
         } else {
             printText("COMMAND UNRECOGNIZED IN DIGITAL MAINFRAME. TYPE 'HELP'.");
         }
-    };
+    }
 
-    const processHackAuth = (cmd) => {
+    function processHackAuth(cmd) {
         if (cmd === 'VALKYRIE') {
             state = 'MAINFRAME';
             traceActive = true;
@@ -887,9 +793,9 @@
         } else {
             printText("ACCESS DENIED. INCORRECT PASSWORD. TYPE 'ABORT' TO EXIT OR TRY AGAIN.\nPASSWORD>");
         }
-    };
+    }
 
-    const processCommand = (cmd) => {
+    function processCommand(cmd) {
         const args = cmd.split(' ');
         const action = args[0];
         const target = args[1];
@@ -1081,9 +987,9 @@
         } else {
             printText("COMMAND UNRECOGNIZED. FOCUS ON THE MISSION.");
         }
-    };
+    }
 
-    const processExtraction = (cmd) => {
+    function processExtraction(cmd) {
         let answer = parseFloat(cmd);
         
         if (cmd === 'WINTERGHOST') {
@@ -1112,7 +1018,98 @@
             triangulationRisk += 5; 
             printText("INCORRECT CALCULATION. TIME IS RUNNING OUT. TRY AGAIN:");
         }
-    };
+    }
+
+    function handleInput(rawCmd) {
+        if (isTyping) return;
+        const cmd = rawCmd.trim().toUpperCase();
+        
+        if (state === 'INTRUSION_DEFENSE') {
+            outputDiv.innerHTML += `<span style="color:#FFF">> ${cmd}</span><br>`;
+            inputField.value = '';
+            resolveIntrusion(cmd);
+            return;
+        }
+
+        if (state === 'RDF_SCRAMBLE') {
+            outputDiv.innerHTML += `<span style="color:#FFF">> ${cmd}</span><br>`;
+            inputField.value = '';
+            resolveRDFIntercept(cmd);
+            return;
+        }
+        
+        let colorClass = traceActive ? 'style="color:#d9534f"' : 'style="color:#6bc26b"';
+        outputDiv.innerHTML += `<span ${colorClass}>> ${cmd}</span><br>`;
+        inputField.value = '';
+
+        if (state === 'HACK_AUTH') {
+            processHackAuth(cmd);
+            return;
+        }
+
+        if (traceActive && getAction(cmd) !== 'CALL_STRIKE' && state !== 'CALC_EXTRACT') {
+            traceLimit--;
+            promptSpan.innerText = `[TRACE: ${traceLimit}] ${state === 'MAINFRAME' ? 'ROOT@BERLIN>' : 'HQ_LINK>'}`;
+            if (traceLimit <= 0) {
+                printText("NETWORK TRACE COMPLETE. ENEMY HAS LOCKED TERMINAL CONTROLS. GESTAPO PATROLS ARRIVING.\n\n*** MISSION FAILED ***", 60, () => {
+                    inputField.style.display = 'none';
+                    if(staticGainNode) staticGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 2);
+                });
+                return;
+            }
+        }
+
+        switch (state) {
+            case 'DIFFICULTY_SELECT':
+                processDifficulty(cmd);
+                break;
+            case 'BOOT':
+                processBoot(cmd);
+                break;
+            case 'CONNECTED':
+                processCommand(cmd);
+                break;
+            case 'MAINFRAME':
+                processMainframe(cmd);
+                break;
+            case 'CALC_EXTRACT':
+                processExtraction(cmd);
+                break;
+        }
+    }
+
+    powerButton.addEventListener('click', () => {
+        if (state !== 'OFF') return; 
+        
+        powerButton.classList.add('active');
+        
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        startStaticNoise();
+        createKeyNoiseBuffer();
+        
+        playHardwareSwitch();
+
+        screen.classList.add('powered-on');
+        state = 'DIFFICULTY_SELECT';
+
+        setTimeout(() => {
+            inputLine.style.display = 'flex';
+            printText("SYSTEM AKTIVIERT. TERMINAL POWERED ON.\nBITTE CHOOSE YOUR PROTOCOL:\n[1] NORMAL OP (STANDARD VERSCHLÜSSELUNG)\n[2] TRAINING OP (ASSISTED ENTSCHLÜSSELUNG)\nENTER EINGABE:");
+        }, 1500);
+    });
+
+    inputField.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            let val = inputField.value.trim();
+            if (val !== '') {
+                handleInput(val);
+            }
+        } else if (e.key !== 'Shift') {
+            playKeyDown(false);
+        }
+    });
+
 </script>
 
 </body>
