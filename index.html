@@ -412,6 +412,50 @@
         "YOU TYPE LIKE A TERRIFIED CHILD. SURRENDER."
     ];
 
+    // --- STATE MANAGEMENT ENGINE ---
+    function saveGame() {
+        if (state !== 'CONNECTED' && state !== 'MAINFRAME') return; 
+        const data = {
+            state, easyMode, alertLevel, signalBoosted, triangulationRisk,
+            traceLimit, strikeCalled, radioFixed, navyContacted, jammerUsed,
+            inventory, environment, safeLocked
+        };
+        localStorage.setItem('vanguard_save', JSON.stringify(data));
+    }
+
+    function loadGame() {
+        const data = JSON.parse(localStorage.getItem('vanguard_save'));
+        state = data.state;
+        easyMode = data.easyMode;
+        alertLevel = data.alertLevel;
+        signalBoosted = data.signalBoosted;
+        triangulationRisk = data.triangulationRisk;
+        traceLimit = data.traceLimit;
+        strikeCalled = data.strikeCalled;
+        radioFixed = data.radioFixed;
+        navyContacted = data.navyContacted;
+        jammerUsed = data.jammerUsed;
+        inventory = data.inventory;
+        environment = data.environment;
+        safeLocked = data.safeLocked;
+
+        if (staticGainNode) {
+            let newVolume = 0.005 + (signalBoosted * 0.15);
+            staticGainNode.gain.linearRampToValueAtTime(newVolume, audioCtx.currentTime + 1);
+        }
+        
+        traceActive = (state === 'MAINFRAME');
+        if (traceActive) {
+            promptSpan.classList.add('trace-warning');
+            inputField.classList.add('trace-warning');
+        }
+    }
+
+    function deleteSave() {
+        localStorage.removeItem('vanguard_save');
+    }
+    // -------------------------------
+
     function playHardwareSwitch() {
         if (!audioCtx) return;
         const t = audioCtx.currentTime;
@@ -655,6 +699,7 @@
     function failRDFIntercept() {
         screen.classList.remove('intrusion-active');
         inputField.style.display = 'none';
+        deleteSave(); // Wipe save on death
         printText("\n*** DOOR BREACH DETECTED. GESTAPO PATROL HAS SECURED THE ROOM. ***\nMISSION FAILED. YOU HAVE BEEN CAPTURED.", 50);
     }
 
@@ -717,6 +762,23 @@
         return cmd.split(' ')[0];
     }
 
+    function processRestorePrompt(cmd) {
+        if (cmd === '1') {
+            loadGame();
+            printText("CACHE RESTORED. RE-ESTABLISHING LINK...", 30, () => {
+                if(state === 'CONNECTED') promptSpan.innerText = "HQ_LINK>";
+                if(state === 'MAINFRAME') promptSpan.innerText = `[TRACE: ${traceLimit}] ROOT@BERLIN>`;
+                commandBar.style.display = 'flex';
+            });
+        } else if (cmd === '2') {
+            deleteSave();
+            state = 'DIFFICULTY_SELECT';
+            printText("CACHE WIPED.\nBITTE CHOOSE YOUR PROTOCOL:\n[1] NORMAL OP (STANDARD VERSCHLÜSSELUNG)\n[2] TRAINING OP (ASSISTED ENTSCHLÜSSELUNG)\nENTER EINGABE:");
+        } else {
+            printText("UNGÜLTIGE AUSWAHL. ENTER 1 OR 2.");
+        }
+    }
+
     function processDifficulty(cmd) {
         if (cmd === '1' || cmd === '2') {
             easyMode = (cmd === '2');
@@ -744,6 +806,7 @@
             alertLevel++;
             printText(`INVALID KEY. THE GESTAPO HAS BEEN NOTIFIED OF YOUR INCOMPETENCE.\nWARNSTUFE: ${alertLevel}/3. TYPE 'HELP'.`);
             if (alertLevel >= 3) {
+                deleteSave(); // Wipe on fail
                 printText("*** CRITICAL ALERT: BUNKER DOORS BREACHED. TERMINAL PURGING. YOU HAVE FAILED. ***", 50, () => {
                     inputField.style.display = 'none';
                     if(staticGainNode) staticGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 2);
@@ -993,6 +1056,7 @@
         let answer = parseFloat(cmd);
         
         if (cmd === 'WINTERGHOST') {
+            deleteSave(); // Wipe save on success
             printText("OVERRIDE CIPHER ACCEPTED.\nSILO 4 DOORS OPENING.\nPROJEKT ATLAS FLIGHT SYSTEMS ENGAGED.\n\nYOU STRAP INTO THE PROTOTYPE AIRCRAFT. VERTICAL THRUSTERS IGNITE. YOU PUNCH THROUGH THE ROOF, LEAVING THE LUFTWAFFE IN YOUR WAKE.\n\n*** SECRET MISSION SUCCESS ***", 45, () => {
                 inputField.style.display = 'none';
                 if(staticGainNode) staticGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3); 
@@ -1005,11 +1069,13 @@
         if (answer === correctAnswer) {
             let timeWindow = 45 - (triangulationRisk * 0.35);
             if (correctAnswer <= timeWindow) {
+                deleteSave(); // Wipe save on success
                 printText("COORDINATES LOCKED. THE MATH CHECKS OUT.\nGRAB YOUR GEAR. WE WILL SEE YOU IN LONDON.\n\n*** MISSION SUCCESS ***", 40, () => {
                     inputField.style.display = 'none';
                     if(staticGainNode) staticGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3); 
                 });
             } else {
+                deleteSave(); // Wipe save on fail
                 printText("THE MATH IS CORRECT, BUT YOU TOOK TOO LONG IN THE BUNKER. THE EXTRACTION ABORTED.\nYOUR DECISIONS BROUGHT THE PATROLS TOO FAST.\n\n*** MISSION FAILED ***", 60, () => {
                     inputField.style.display = 'none';
                 });
@@ -1024,6 +1090,13 @@
         if (isTyping) return;
         const cmd = rawCmd.trim().toUpperCase();
         
+        if (state === 'RESTORE_PROMPT') {
+            outputDiv.innerHTML += `<span style="color:#FFF">> ${cmd}</span><br>`;
+            inputField.value = '';
+            processRestorePrompt(cmd);
+            return;
+        }
+
         if (state === 'INTRUSION_DEFENSE') {
             outputDiv.innerHTML += `<span style="color:#FFF">> ${cmd}</span><br>`;
             inputField.value = '';
@@ -1051,6 +1124,7 @@
             traceLimit--;
             promptSpan.innerText = `[TRACE: ${traceLimit}] ${state === 'MAINFRAME' ? 'ROOT@BERLIN>' : 'HQ_LINK>'}`;
             if (traceLimit <= 0) {
+                deleteSave(); // Wipe save on trace death
                 printText("NETWORK TRACE COMPLETE. ENEMY HAS LOCKED TERMINAL CONTROLS. GESTAPO PATROLS ARRIVING.\n\n*** MISSION FAILED ***", 60, () => {
                     inputField.style.display = 'none';
                     if(staticGainNode) staticGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 2);
@@ -1076,6 +1150,11 @@
                 processExtraction(cmd);
                 break;
         }
+        
+        // Auto-save logic hooks into stable command loops
+        if (!isTyping) {
+            saveGame();
+        }
     }
 
     powerButton.addEventListener('click', () => {
@@ -1090,11 +1169,17 @@
         playHardwareSwitch();
 
         screen.classList.add('powered-on');
-        state = 'DIFFICULTY_SELECT';
 
         setTimeout(() => {
             inputLine.style.display = 'flex';
-            printText("SYSTEM AKTIVIERT. TERMINAL POWERED ON.\nBITTE CHOOSE YOUR PROTOCOL:\n[1] NORMAL OP (STANDARD VERSCHLÜSSELUNG)\n[2] TRAINING OP (ASSISTED ENTSCHLÜSSELUNG)\nENTER EINGABE:");
+            
+            if (localStorage.getItem('vanguard_save')) {
+                state = 'RESTORE_PROMPT';
+                printText("SYSTEM AKTIVIERT. LOCAL CACHE DETECTED.\n[1] RESUME PREVIOUS OPERATION\n[2] WIPE CACHE AND RESTART\nENTER EINGABE:");
+            } else {
+                state = 'DIFFICULTY_SELECT';
+                printText("SYSTEM AKTIVIERT. TERMINAL POWERED ON.\nBITTE CHOOSE YOUR PROTOCOL:\n[1] NORMAL OP (STANDARD VERSCHLÜSSELUNG)\n[2] TRAINING OP (ASSISTED ENTSCHLÜSSELUNG)\nENTER EINGABE:");
+            }
         }, 1500);
     });
 
