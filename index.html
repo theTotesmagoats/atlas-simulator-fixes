@@ -502,7 +502,13 @@
     };
 
     inputField.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter' && e.key !== 'Shift') playKeyDown(false);
+        if (e.key === 'Enter') {
+            if (inputField.value.trim() !== '') {
+                handleInput(inputField.value);
+            }
+        } else if (e.key !== 'Shift') {
+            playKeyDown(false);
+        }
     });
 
     const triggerExplosion = () => {
